@@ -1,0 +1,3 @@
+/Users/Caelan/Documents/McGill/ECSE 446/a5/cmake-build-release/CMakeFiles/rebuild_cache.dir
+/Users/Caelan/Documents/McGill/ECSE 446/a5/cmake-build-release/CMakeFiles/edit_cache.dir
+/Users/Caelan/Documents/McGill/ECSE 446/a5/cmake-build-release/CMakeFiles/tinyrender.dir

@@ -1,0 +1,18 @@
+[input]
+objfile = "../mesh/veach_mis.obj"
+[camera]
+eye = [0.0, 2.0, 15.0]
+at = [0.0, -2.0, 2.5]
+up = [0.0, 1.0, 0.0]
+fov = 35.0
+
+[film]
+width = 600
+height = 400
+
+[renderer]
+realtime = false
+isExplicit = true
+type = "path"
+maxDepth = 4
+spp = 64

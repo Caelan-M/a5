@@ -57,8 +57,8 @@ struct PathTracerIntegrator : Integrator {
     v3f directLighting(Sampler& sampler, SurfaceInteraction& hit) const {
         v3f Lb(0.f);
         //Use 1 since doing multiple spp, dont need multiple samples here
-        float m_emitterSamples = 1;
-        float m_bsdfSamples = 1;
+        int m_emitterSamples = 1;
+        int m_bsdfSamples = 1;
 
         for(int j = 0; j < m_bsdfSamples; j++) {
             //SurfaceInteraction surfInt;

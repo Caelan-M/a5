@@ -55,94 +55,31 @@ struct PathTracerIntegrator : Integrator {
     }
 
     v3f directLighting(Sampler& sampler, SurfaceInteraction& hit) const {
-        v3f Lb(0.f);
-        //Use 1 since doing multiple spp, dont need multiple samples here
-        float m_emitterSamples = 1;
-        float m_bsdfSamples = 1;
+        glm::vec3 directLight(0.f);
+        SurfaceInteraction i;
+        float pdf = 0.f;
+        float emPdf;
+        size_t id = selectEmitter(sampler.next(), emPdf);
+        const Emitter &em = getEmitterByID(id);
+        v3f intensity = em.getRadiance();
+        v3f n;
+        v3f pos;
+        sampleEmitterPosition(sampler, em, n, pos, pdf);
 
-        for(int j = 0; j < m_bsdfSamples; j++) {
-            //SurfaceInteraction surfInt;
-            //SurfaceInteraction i;
-            float pdf;
-            glm::vec3 val(0.f);
+        v3f emDir = glm::normalize(pos - hit.p);
+        hit.wi = hit.frameNs.toLocal(emDir);
 
-            v2f sample = sampler.next2D();
+        Ray sampleRay(hit.p, emDir);
 
-            val = getBSDF(hit)->sample(hit, sample, &pdf);
-
-            glm::vec3 sampleDir = hit.frameNs.toWorld(hit.wi);
-
-            //check if point light is visible from point
-            Ray sampleRay(hit.p, sampleDir);
-
-            SurfaceInteraction i;
-            if(scene.bvh->intersect(sampleRay, i)){
-
-                //if visible to light find its color
-                if(getEmission(i) != v3f(0.f)) {
-
-
-                    float emPdf = 1.f/scene.emitters.size();
-                    const Emitter &em = getEmitterByID(getEmitterIDByShapeID(i.shapeID));
-                    v3f position = scene.getShapeCenter(em.shapeID);
-                    v3f intensity = em.getRadiance();
-                    float saPdf;
-                    v3f wiW;
-                    v3f emitterCenter = scene.getShapeCenter(em.shapeID);
-                    float emitterRadius = scene.getShapeRadius(em.shapeID);
-                    v3f n;
-                    v3f pos;
-
-                    sampleEmitterPosition(sampler, em, n, pos, saPdf);
-
-                    float bal = balanceHeuristic(m_bsdfSamples, pdf, m_emitterSamples, saPdf * emPdf);
-
-                    Lb += val * getEmission(i) * bal;
-                }
-            }
-
-        }
-        if(m_bsdfSamples != 0)
-            Lb /= m_bsdfSamples;
-
-        v3f Lsa = v3f(0.f);
-
-        //solid angle
-        for (int j = 0; j < m_emitterSamples; j++) {
-
-            glm::vec3 directLight(0.f);
-            SurfaceInteraction i;
-            float pdf = 0.f;
-            float emPdf;
-            size_t id = selectEmitter(sampler.next(), emPdf);
-            const Emitter &em = getEmitterByID(id);
-            v3f intensity = em.getRadiance();
-            v3f n;
-            v3f pos;
-            sampleEmitterPosition(sampler, em, n, pos, pdf);
-
-            v3f emDir = glm::normalize(pos - hit.p);
-            hit.wi = hit.frameNs.toLocal(emDir);
-
-            Ray sampleRay(hit.p, emDir);
-
-            if (scene.bvh->intersect(sampleRay, i)) {
-                if (getEmission(i) != v3f(0.f)) {
-                    float cosFact = max(0.f, glm::dot(-emDir, n));
-                    intensity = getEmission(i) / glm::distance2(hit.p, pos);
-                    v3f val = getBSDF(hit)->eval(hit);
-
-                    float bsdfPdf = getBSDF(hit)->pdf(hit);
-                    float bal = balanceHeuristic(m_emitterSamples, pdf * emPdf, m_bsdfSamples, bsdfPdf);
-
-                    Lsa = intensity * val * bal / pdf / emPdf * cosFact;
-                }
+        if (scene.bvh->intersect(sampleRay, i)) {
+            if (getEmission(i) != v3f(0.f)) {
+                float cosFact = max(0.f, glm::dot(-emDir, n));
+                intensity = getEmission(i) / glm::distance2(hit.p, pos);
+                v3f val = getBSDF(hit)->eval(hit);
+                directLight = intensity * val / pdf / emPdf * cosFact;
             }
         }
-        if(m_emitterSamples != 0)
-            Lsa /= m_emitterSamples;
-
-        return Lsa + Lb;
+        return directLight;
     }
 
     v3f indirectLighting(Sampler& sampler, SurfaceInteraction& hit, int depth) const {
@@ -164,7 +101,6 @@ struct PathTracerIntegrator : Integrator {
         glm::vec3 indirectLight(0.f);
 
         v3f emission = v3f(200.f);
-        int j = 0;
         while(emission != v3f(0.f)) {
             indirectLight = getBSDF(hit)->sample(hit, sampler.next2D(), &pdf);
 
@@ -175,10 +111,7 @@ struct PathTracerIntegrator : Integrator {
 
             if (!scene.bvh->intersect(sampleRay, i))
                 return v3f(0.f);
-            if(j >= 5) //avoid getting stuck inside this loop too long, adds bias but would happen in MIS
-                return v3f(0.f);
             emission = getEmission(i);
-            j++;
         }
 
         if(m_maxDepth == -1)

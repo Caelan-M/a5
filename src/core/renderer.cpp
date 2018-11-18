@@ -228,12 +228,6 @@ bool Scene::load(bool isRealTime) {
             bsdfs[i] = std::unique_ptr<BSDF>(new PhongBSDF(worldData, config, i));
         if (worldData.materials[i].illum == 8)
             bsdfs[i] = std::unique_ptr<BSDF>(new MixtureBSDF(worldData, config, i));
-        if (worldData.materials[i].illum == 3) //Mirror
-            bsdfs[i] = std::unique_ptr<BSDF>(new MirrorBSDF(worldData, config, i));
-        if (worldData.materials[i].illum == 4) //Glass
-            bsdfs[i] = std::unique_ptr<BSDF>(new GlassBSDF(worldData, config, i));
-        if (worldData.materials[i].illum == 4) //Glass
-            bsdfs[i] = std::unique_ptr<BSDF>(new MicrofacetBSDF(worldData, config, i));
     }
 
     // Build list of emitters (and print what has been loaded)

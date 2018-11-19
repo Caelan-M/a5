@@ -102,7 +102,6 @@ struct PathTracerIntegrator : Integrator {
 
         v3f emission = v3f(200.f);
 
-        int j = 0;
         while(emission != v3f(0.f)) {
             indirectLight = getBSDF(hit)->sample(hit, sampler.next2D(), &pdf);
 
@@ -113,14 +112,7 @@ struct PathTracerIntegrator : Integrator {
 
             if (!scene.bvh->intersect(sampleRay, i))
                 return v3f(0.f);
-
-            //I understand that this adds bias but it seemed to be necessary because
-            // otherwise I would occasionally get stuck in this loop indefinitely
-            //I believe this was only necessary for about 1 sample of 1 pixel of some really weird case
-            if(j > 10)
-                return v3f(0.f);
             emission = getEmission(i);
-            j++;
         }
 
         if(m_maxDepth == -1 && depth >= m_rrDepth)

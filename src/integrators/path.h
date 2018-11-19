@@ -21,7 +21,7 @@ struct PathTracerIntegrator : Integrator {
     }
 
     static inline float balanceHeuristic(float nf, float fPdf, float ng, float gPdf) {
-        float f = nf * fPdf, g = ng * gPdf;
+        float f = nf * fPdf * fPdf, g = ng * gPdf * gPdf;
         return f / (f + g);
     }
 
@@ -94,8 +94,10 @@ struct PathTracerIntegrator : Integrator {
                     v3f pos;
 
                     sampleEmitterPosition(sampler, em, n, pos, saPdf);
+                    v3f emDir = glm::normalize(pos - hit.p);
+                    float cosFact = glm::dot(-emDir, n);
 
-                    float bal = balanceHeuristic(m_bsdfSamples, pdf, m_emitterSamples, saPdf * emPdf);
+                    float bal = balanceHeuristic(m_bsdfSamples, pdf, m_emitterSamples, saPdf * emPdf / cosFact * glm::distance2(hit.p, pos));
 
                     Lb += val * getEmission(i) * bal;
                 }
@@ -129,11 +131,12 @@ struct PathTracerIntegrator : Integrator {
             if (scene.bvh->intersect(sampleRay, i)) {
                 if (getEmission(i) != v3f(0.f)) {
                     float cosFact = max(0.f, glm::dot(-emDir, n));
+                    float cosFact1 = glm::dot(-emDir, n);
                     intensity = getEmission(i) / glm::distance2(hit.p, pos);
                     v3f val = getBSDF(hit)->eval(hit);
 
                     float bsdfPdf = getBSDF(hit)->pdf(hit);
-                    float bal = balanceHeuristic(m_emitterSamples, pdf * emPdf, m_bsdfSamples, bsdfPdf);
+                    float bal = balanceHeuristic(m_emitterSamples, pdf * emPdf / cosFact1 * glm::distance2(hit.p, pos), m_bsdfSamples, bsdfPdf);
 
                     Lsa = intensity * val * bal / pdf / emPdf * cosFact;
                 }

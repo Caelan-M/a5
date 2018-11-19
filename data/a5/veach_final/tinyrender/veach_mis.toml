@@ -15,4 +15,4 @@ realtime = false
 isExplicit = true
 type = "path"
 maxDepth = 4
-spp = 64
+spp = 128

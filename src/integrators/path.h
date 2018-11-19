@@ -91,7 +91,7 @@ struct PathTracerIntegrator : Integrator {
 
         depth++;
         if(m_maxDepth == -1) {
-            if(depth > m_rrDepth && sampler.next() > m_rrProb)
+            if(depth >= m_rrDepth && sampler.next() > m_rrProb)
                 return v3f(0.f);
         }
         else if(depth >= m_maxDepth)
@@ -101,6 +101,8 @@ struct PathTracerIntegrator : Integrator {
         glm::vec3 indirectLight(0.f);
 
         v3f emission = v3f(200.f);
+
+        int j = 0;
         while(emission != v3f(0.f)) {
             indirectLight = getBSDF(hit)->sample(hit, sampler.next2D(), &pdf);
 
@@ -111,10 +113,17 @@ struct PathTracerIntegrator : Integrator {
 
             if (!scene.bvh->intersect(sampleRay, i))
                 return v3f(0.f);
+
+            //I understand that this adds bias but it seemed to be necessary because
+            // otherwise I would occasionally get stuck in this loop indefinitely
+            //I believe this was only necessary for about 1 sample of 1 pixel of some really weird case
+            if(j > 10)
+                return v3f(0.f);
             emission = getEmission(i);
+            j++;
         }
 
-        if(m_maxDepth == -1)
+        if(m_maxDepth == -1 && depth >= m_rrDepth)
             Li *= indirectLight / m_rrProb * (indirectLighting(sampler, i, depth) + directLighting(sampler, i));
         else
             Li *= indirectLight * (indirectLighting(sampler, i, depth) + directLighting(sampler, i));
